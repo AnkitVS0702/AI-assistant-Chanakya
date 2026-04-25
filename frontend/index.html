@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chanakya Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Chanakya Assistant</h1>
+        <p>Your local voice-enabled AI helper</p>
+      </div>
+    </header>
+
+    <main class="chat-panel">
+      <section id="chat" class="chat-window">
+        <div class="chat-empty">Start by typing a message or using voice input.</div>
+      </section>
+
+      <div class="control-panel">
+        <div class="input-group">
+          <input id="input" type="text" placeholder="Type your question..." autocomplete="off" />
+          <button id="voiceBtn" class="voice-btn" title="Use voice input">🎙</button>
+        </div>
+        <button id="sendBtn" class="send-btn">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
