@@ -15,20 +15,33 @@
       </div>
     </header>
 
-    <main class="chat-panel">
-      <section id="chat" class="chat-window">
-        <div class="chat-empty">Start by typing a message or using voice input.</div>
+    <main class="main-content">
+      <section class="chat-panel">
+        <section id="chat" class="chat-window">
+          <div class="chat-empty">Start by typing a message or using voice input.</div>
+        </section>
+  
+        <div class="control-panel">
+          <div class="input-group">
+            <input id="input" type="text" placeholder="Type your question..." autocomplete="off" />
+            <button id="voiceBtn" class="voice-btn" title="Use voice input">🎙</button>
+          </div>
+          <button id="sendBtn" class="send-btn">Send</button>
+        </div>
       </section>
 
-      <div class="control-panel">
-        <div class="input-group">
-          <input id="input" type="text" placeholder="Type your question..." autocomplete="off" />
-          <button id="voiceBtn" class="voice-btn" title="Use voice input">🎙</button>
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Active Alarms</h2>
         </div>
-        <button id="sendBtn" class="send-btn">Send</button>
-      </div>
+        <div id="alarmsList" class="alarms-list">
+          <p class="empty-state">No active alarms</p>
+        </div>
+      </aside>
     </main>
   </div>
+
+  <audio id="alarmSound" loop src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 
   <script src="script.js"></script>
 </body>

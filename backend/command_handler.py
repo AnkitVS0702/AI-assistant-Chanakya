@@ -18,6 +18,11 @@ def handle_command(text):
         ]:
             if app in text:
                 return open_app(app)
+        
+        # 1.1 Check for Custom Collaborative App "Vani"
+        if "vani" in text:
+            open_in_chrome("https://vani-frontend.vercel.app")
+            return "Opening Vani, your collaborative app."
 
         # 2. Check for Safe Folders
         if "downloads" in text:

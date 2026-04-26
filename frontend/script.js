@@ -2,8 +2,17 @@ const chatWindow = document.getElementById("chat");
 const inputField = document.getElementById("input");
 const sendBtn = document.getElementById("sendBtn");
 const voiceBtn = document.getElementById("voiceBtn");
+const alarmsList = document.getElementById("alarmsList");
+const alarmSound = document.getElementById("alarmSound");
+
 let recognition;
 let listening = false;
+let alarms = JSON.parse(localStorage.getItem("chanakya_alarms") || "[]");
+
+// Request notification permission on load
+if (Notification.permission === "default") {
+  Notification.requestPermission();
+}
 
 function createMessage(text, role) {
   const bubble = document.createElement("div");
@@ -64,10 +73,17 @@ async function sendMessage() {
     const data = await res.json();
     loadingBubble.textContent = data.response || "No response received.";
     
-    // If hotels are provided, render the grid
+    // Handle Hotels
     if (data.hotels && data.hotels.length > 0) {
       const grid = createHotelGrid(data.hotels);
       pair.querySelector(".message.assistant").appendChild(grid);
+    }
+
+    // Handle Alarms
+    if (data.alarms && data.alarms.length > 0) {
+      data.alarms.forEach(alarm => {
+        addAlarm(alarm.message, alarm.seconds);
+      });
     }
   } catch (error) {
     loadingBubble.textContent = "Unable to get a response. Check your server.";
@@ -78,6 +94,106 @@ async function sendMessage() {
   }
 }
 
+/* --- Alarm Logic --- */
+function addAlarm(message, seconds) {
+  const now = Date.now();
+  const triggerTime = now + (seconds * 1000);
+  
+  const newAlarm = {
+    id: now + Math.random(),
+    message,
+    triggerTime,
+    status: "active"
+  };
+
+  alarms.push(newAlarm);
+  saveAlarms();
+  renderAlarms();
+}
+
+function saveAlarms() {
+  localStorage.setItem("chanakya_alarms", JSON.stringify(alarms));
+}
+
+function renderAlarms() {
+  if (alarms.length === 0) {
+    alarmsList.innerHTML = '<p class="empty-state">No active alarms</p>';
+    return;
+  }
+
+  alarmsList.innerHTML = "";
+  // Sort alarms by trigger time
+  const sorted = [...alarms].sort((a, b) => a.triggerTime - b.triggerTime);
+  
+  sorted.forEach(alarm => {
+    const item = document.createElement("div");
+    item.className = `alarm-item ${alarm.status === "ringing" ? "ringing" : ""}`;
+    
+    // Format the trigger time for display (e.g., 08:54 AM)
+    const date = new Date(alarm.triggerTime);
+    const timeStr = alarm.status === "ringing" 
+      ? "🚨 RINGING!" 
+      : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    item.innerHTML = `
+      <div class="alarm-info">
+        <span class="alarm-msg">${alarm.message}</span>
+        <span class="alarm-time">${timeStr}</span>
+      </div>
+      <button class="btn-dismiss" onclick="dismissAlarm(${alarm.id})">
+        ${alarm.status === "ringing" ? "Stop" : "Delete"}
+      </button>
+    `;
+    alarmsList.appendChild(item);
+  });
+}
+
+function dismissAlarm(id) {
+  alarms = alarms.filter(a => a.id !== id);
+  saveAlarms();
+  renderAlarms();
+  
+  // Stop sound if no more ringing alarms
+  if (!alarms.some(a => a.status === "ringing")) {
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+  }
+}
+
+function checkAlarms() {
+  let changed = false;
+  const now = Date.now();
+
+  alarms.forEach(alarm => {
+    if (alarm.status === "active" && now >= alarm.triggerTime) {
+      alarm.status = "ringing";
+      changed = true;
+      triggerRinging(alarm);
+    }
+  });
+
+  // Only re-render if an alarm status actually changed to "ringing"
+  if (changed) renderAlarms();
+}
+
+function triggerRinging(alarm) {
+  // Play sound
+  alarmSound.play().catch(e => console.log("Sound play failed:", e));
+
+  // Show Browser Notification
+  if (Notification.permission === "granted") {
+    new Notification("Chanakya Alarm!", {
+      body: `Time for: ${alarm.message}`,
+      icon: "https://cdn-icons-png.flaticon.com/512/182/182444.png"
+    });
+  }
+}
+
+// Check alarms every second
+setInterval(checkAlarms, 1000);
+renderAlarms(); // Initial render
+
+/* --- Hotel Logic --- */
 function createHotelGrid(hotels) {
   const grid = document.createElement("div");
   grid.className = "hotel-grid";
@@ -103,48 +219,37 @@ function createHotelCard(hotel) {
   return card;
 }
 
+/* --- Voice Logic --- */
 function updateVoiceButton() {
   voiceBtn.classList.toggle("active", listening);
   voiceBtn.textContent = listening ? "🛑" : "🎙";
   voiceBtn.title = listening ? "Stop listening" : "Use voice input";
 }
 
-function startVoice() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Speech recognition is not supported in this browser.");
-    return;
-  }
+async function startVoice() {
+  if (listening) return; // Prevent multiple clicks
 
-  if (!recognition) {
-    recognition = new SpeechRecognition();
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      inputField.value = transcript;
-    };
-
-    recognition.onerror = () => {
-      listening = false;
-      updateVoiceButton();
-    };
-
-    recognition.onend = () => {
-      listening = false;
-      updateVoiceButton();
-    };
-  }
-
-  if (listening) {
-    recognition.stop();
-    listening = false;
-  } else {
-    recognition.start();
-    listening = true;
-  }
+  listening = true;
   updateVoiceButton();
+
+  try {
+    const res = await fetch("http://localhost:5000/listen", {
+      method: "POST"
+    });
+    const data = await res.json();
+    
+    if (data.text && data.text !== "TIMEOUT_ERROR" && data.text !== "UNKNOWN_VALUE_ERROR" && data.text !== "") {
+      inputField.value = data.text;
+      sendMessage(); // Automatically send the message
+    } else if (data.text === "TIMEOUT_ERROR") {
+      console.log("No speech detected.");
+    }
+  } catch (error) {
+    console.error("Backend speech error:", error);
+  } finally {
+    listening = false;
+    updateVoiceButton();
+  }
 }
 
 voiceBtn.addEventListener("click", startVoice);

@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from command_handler import handle_command
 from text_to_speech import speak
+from speech_to_text import listen
 
 app = Flask(__name__)
 CORS(app)
@@ -37,6 +38,11 @@ def chat():
         "hotels": hotels,
         "alarms": alarms
     })
+
+@app.route("/listen", methods=["POST"])
+def listen_route():
+    text = listen()
+    return jsonify({"text": text})
 
 if __name__ == "__main__":
     app.run(debug=True)
