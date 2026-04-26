@@ -25,3 +25,22 @@ def open_app_path(path):
         return f"Opening {path}"
     except:
         return "Path not found"
+
+def open_in_chrome(query):
+    chrome_path = apps["chrome"]
+    
+    # If it looks like a URL (contains a dot and no spaces) or ends with common TLDs
+    if "." in query and " " not in query:
+        url = query if query.startswith("http") else f"https://{query}"
+    # If it's a single word, guess .com
+    elif " " not in query:
+        url = f"https://www.{query}.com"
+    # Otherwise, search on Google
+    else:
+        url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
+        
+    try:
+        subprocess.Popen([chrome_path, url])
+        return f"Opening {query} in Chrome"
+    except Exception as e:
+        return f"Error opening Chrome: {e}"

@@ -19,11 +19,20 @@ def chat():
     data = request.json
     text = data.get("text")
 
-    response = handle_command(text)
+    # Now handle_command returns (response_text, optional_data)
+    response_data = handle_command(text)
+    
+    if isinstance(response_data, tuple):
+        response, hotels = response_data
+    else:
+        response, hotels = response_data, []
 
     speak(response)
 
-    return jsonify({"response": response})
+    return jsonify({
+        "response": response,
+        "hotels": hotels
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
