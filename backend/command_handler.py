@@ -46,10 +46,9 @@ def handle_command(text):
     hotels = []
     
     # 🏨 Hotel Logic: Check if the LLM is suggesting hotels
-    # We'll teach the LLM to include [HOTEL: ...] blocks
     if "hotel" in text.lower() or "stay" in text.lower():
-        # Re-query the LLM specifically for structured hotel data if it looks like a request
-        hotel_data_query = f"Provide a list of 3 real hotels in '{text}' with name, price per night, and star rating. Format: [HOTEL: name | price: <price> | rating: <stars>]"
+        # Updated query to prioritize price as requested
+        hotel_data_query = f"Provide a list of 3 real hotels in '{text}' sorted by price (lowest to highest) with name, price per night, and star rating. Format: [HOTEL: name | price: <price> | rating: <stars>]"
         raw_hotels = ask_llm(hotel_data_query)
         
         hotel_matches = re.findall(r"\[HOTEL: (.*?) \| price: (.*?) \| rating: (.*?)\]", raw_hotels)
@@ -60,16 +59,20 @@ def handle_command(text):
                 "rating": float(h_match[2]) if h_match[2].strip().replace('.','',1).isdigit() else 5.0
             })
 
-    # ⏰ Reminder Logic: Check if the LLM output contains a reminder command
+    # ⏰ Alarm Logic: Check if the LLM output contains a reminder command
+    alarms = []
     match = re.search(r"\[COMMAND: REMINDER \| message: (.*?) \| seconds: (\d+)\]", response)
     
     if match:
         msg = match.group(1)
         sec = int(match.group(2))
-        schedule_reminder(msg, sec)
+        alarms.append({"message": msg, "seconds": sec})
+        # Note: We can still call scheduler if we want a backend backup, 
+        # but the user specifically asked for the web alarm app.
+        schedule_reminder(msg, sec) 
         response = re.sub(r"\[COMMAND: REMINDER .*?\]", "", response).strip()
         
-    return response, hotels
+    return response, hotels, alarms
 
 def search_and_open_file(filename):
     # Safe directories to search in

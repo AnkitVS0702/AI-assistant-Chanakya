@@ -9,15 +9,16 @@ except ImportError:
     print("Warning: win10toast not installed. Install with 'pip install win10toast'")
 
 def schedule_reminder(message, seconds):
+    """Handles voice and toast notification backup on the backend."""
     def run():
-        print(f"Reminder set: '{message}' in {seconds} seconds.")
+        print(f"Backend reminder set: '{message}' in {seconds} seconds.")
         time.sleep(seconds)
         
         # 1. Speak the reminder
         alert_text = f"Reminder: {message}"
         speak(alert_text)
         
-        # 2. Show Windows Notification
+        # 2. Show Windows Notification (Toast)
         if toaster:
             toaster.show_toast(
                 "Chanakya Reminder",

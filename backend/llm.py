@@ -12,18 +12,26 @@ client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
+from datetime import datetime
+
 def ask_llm(prompt):
+    # Get current time for the LLM to calculate absolute alarm times
+    current_time = datetime.now().strftime("%I:%M %p, %A, %d %B %Y")
+    
     try:
         chat_completion = client.chat.completions.create(
             messages=[
                 {
                     "role": "system",
-                    "content": """You are Chanakya, a concise and helpful AI assistant.
+                    "content": f"""You are Chanakya, a concise and helpful AI assistant.
                     
-                    CRITICAL: If the user asks for a reminder, alarm, or timer:
-                    1. Respond naturally to the user (e.g., "Sure, I'll remind you to drink water in 10 minutes.").
-                    2. Append a command block at the very end in this format: [COMMAND: REMINDER | message: <msg> | seconds: <sec>]
-                    3. Calculate the seconds from 'now' based on the user's request.
+                    CURRENT TIME: {current_time}
+                    
+                    CRITICAL: If the user asks for a reminder, alarm, or timer (e.g., "in 5 mins" OR "at 8:54 AM"):
+                    1. Respond naturally to the user.
+                    2. Append a command block at the very end: [COMMAND: REMINDER | message: <msg> | seconds: <sec>]
+                    3. Calculate <sec> by finding the difference between CURRENT TIME and the requested time.
+                    4. If the requested time is earlier than the current time, assume they mean tomorrow.
                     
                     Otherwise, answer in 1-2 sentences maximum. Be direct."""
                 },
